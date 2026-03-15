@@ -39,6 +39,7 @@ class MahjongDecisionNet(nn.Module):
             nn.Linear(256, 512),  nn.BatchNorm1d(512), nn.ReLU(),
             nn.Linear(512, 1024), nn.BatchNorm1d(1024), nn.ReLU()
         )
+        # 如果训练时发现模型对某些关键局势（如点炮后的惩罚）反应不够灵敏，可以在训练脚本里给上路特征加入少量的 Dropout(0.1)。
         
         # --- [2. 下路: 牌面流] ---
         # 初始卷积：将 1 通道提升至自定义的 channels 数量
@@ -95,10 +96,9 @@ def forward(self, u_bools, u_floats, tiles_4d):
         
         return logits * action_mask
 
-# 如果训练时发现模型对某些关键局势（如点炮后的惩罚）反应不够灵敏，可以在训练脚本里给上路特征加入少量的 Dropout(0.1)。
 
 # --- 实例检查 ---
-model = MahjongDecisionNet(channels=64, cycles=50)
+model = MahjongDecisionNet(channels=128, cycles=50)
 print(f"模型参数总量: {sum(p.numel() for p in model.parameters()):,}")
 #   专家层数    10x模型参数     50x模型参数
 #   32          1,925,733       2,179,173
