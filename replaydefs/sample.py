@@ -34,7 +34,7 @@ class MahjongDecisionNet(nn.Module):
         # --- [1. 上路: 局势流扩展至 1024 维] ---
         # 这里有一个点，就是当channels=256这个参数变化时，我们希望上路的维度仍然是可控的，扩展次数也是可变的。这一部分代码需要优化。
         self.upper_branch = nn.Sequential(
-            nn.Linear(61, 128),    nn.BatchNorm1d(128),  nn.ReLU(),
+            nn.Linear(59, 128),    nn.BatchNorm1d(128),  nn.ReLU(),
             nn.Linear(128, 256),   nn.BatchNorm1d(256),  nn.ReLU(),
             nn.Linear(256, 512),  nn.BatchNorm1d(512), nn.ReLU(),
             nn.Linear(512, 1024), nn.BatchNorm1d(1024), nn.ReLU()
