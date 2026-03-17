@@ -34,7 +34,7 @@ class MahjongDecisionNet(nn.Module):
         # --- [1. 上路: 局势流扩展至 1024 维] ---
         # 这里有一个点，就是当channels=256这个参数变化时，我们希望上路的维度仍然是可控的，扩展次数也是可变的。这一部分代码需要优化。
         self.upper_branch = nn.Sequential(
-            nn.Linear(46, 128),    nn.BatchNorm1d(128),  nn.ReLU(),
+            nn.Linear(61, 128),    nn.BatchNorm1d(128),  nn.ReLU(),
             nn.Linear(128, 256),   nn.BatchNorm1d(256),  nn.ReLU(),
             nn.Linear(256, 512),  nn.BatchNorm1d(512), nn.ReLU(),
             nn.Linear(512, 1024), nn.BatchNorm1d(1024), nn.ReLU()
@@ -101,9 +101,9 @@ def forward(self, u_bools, u_floats, tiles_4d):
 model = MahjongDecisionNet(channels=128, cycles=50)
 print(f"模型参数总量: {sum(p.numel() for p in model.parameters()):,}")
 #   专家层数    10x模型参数     50x模型参数
-#   32          1,925,733       2,179,173
-#   64          2,540,069       3,538,469
-#   128         4,905,381       8,868,261
-#   256         14,182,565      29,972,645
-#   512         50,923,173      113,960,613
+#   32          975,077         1,228,517
+#   64          1,589,413       2,587,813
+#   128         3,954,725       7,917,605
+#   256         13,231,909      29,021,989
+#   512         49,972,517      113,009,957
 
