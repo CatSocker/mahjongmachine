@@ -66,7 +66,7 @@ class MahjongDecisionNet(nn.Module):
         # 融合后的全连接层: 上路 (1024) + 下路 (channels * 37)
         self.pre_output = nn.Linear(1024 + down_stream_dim, 37)
 
-def forward(self, u_bools, u_floats, tiles_4d):
+    def forward(self, u_bools, u_floats, tiles_4d):
         """
         tiles_4d: (Batch, 125, 37, 1)
         """
@@ -96,6 +96,30 @@ def forward(self, u_bools, u_floats, tiles_4d):
         
         return logits * action_mask
 
+class RewardPredictor(nn.Module):
+    def __init__(self, channels=128, cycles=10):
+        super().__init__()
+        # 简化版 ResNet，用于提取当前局势特征
+        self.conv_init = nn.Conv2d(1, channels, kernel_size=(1, 3), padding=(0, 1))
+        self.res_layers = nn.Sequential(*[ResidualBlock(channels) for _ in range(cycles)])
+        self.flatten = nn.Flatten()
+        
+        # 输入：卷积特征 + 46维全局特征
+        # 输出：4个数值 (对应四家局末的 Score Change)
+        self.fc = nn.Sequential(
+            nn.Linear(channels * 37 + 59, 512),
+            nn.ReLU(),
+            nn.Linear(512, 4) 
+        )
+
+    def forward(self, u_in, tiles_4d):
+        x = tiles_4d.permute(0, 3, 1, 2).float()
+        x = F.relu(self.conv_init(x))
+        x = self.res_layers(x)
+        x_flat = self.flatten(x[:, :, -1, :]) # 取最后一层特征
+        
+        combined = torch.cat((x_flat, u_in), dim=1)
+        return self.fc(combined)
 
 # --- 实例检查 ---
 model = MahjongDecisionNet(channels=128, cycles=50)
