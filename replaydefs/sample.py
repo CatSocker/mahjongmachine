@@ -34,7 +34,7 @@ class MahjongDecisionNet(nn.Module):
         # --- [1. 上路: 局势流扩展至 1024 维] ---
         # 这里有一个点，就是当channels=256这个参数变化时，我们希望上路的维度仍然是可控的，扩展次数也是可变的。这一部分代码需要优化。
         self.upper_branch = nn.Sequential(
-            nn.Linear(59, 128),    nn.BatchNorm1d(128),  nn.ReLU(),
+            nn.Linear(63, 128),    nn.BatchNorm1d(128),  nn.ReLU(),
             nn.Linear(128, 256),   nn.BatchNorm1d(256),  nn.ReLU(),
             nn.Linear(256, 512),  nn.BatchNorm1d(512), nn.ReLU(),
             nn.Linear(512, 1024), nn.BatchNorm1d(1024), nn.ReLU()
@@ -103,31 +103,32 @@ class RewardPredictor(nn.Module):
         self.conv_init = nn.Conv2d(1, channels, kernel_size=(1, 3), padding=(0, 1))
         self.res_layers = nn.Sequential(*[ResidualBlock(channels) for _ in range(cycles)])
         self.flatten = nn.Flatten()
-        
-        # 输入：卷积特征 + 46维全局特征
+        # 输入：卷积特征 + 59维全局特征
         # 输出：4个数值 (对应四家局末的 Score Change)
         self.fc = nn.Sequential(
-            nn.Linear(channels * 37 + 59, 512),
+            nn.Linear(channels * 37 + 63, 512),
             nn.ReLU(),
             nn.Linear(512, 4) 
         )
 
-    def forward(self, u_in, tiles_4d):
+    def forward(self, u_in, tiles_4d): # u_in 已经是拼合后的全局特征 (B, 63)，tiles_4d 是牌面特征 (B, 125, 37, 1)
         x = tiles_4d.permute(0, 3, 1, 2).float()
         x = F.relu(self.conv_init(x))
         x = self.res_layers(x)
         x_flat = self.flatten(x[:, :, -1, :]) # 取最后一层特征
-        
         combined = torch.cat((x_flat, u_in), dim=1)
         return self.fc(combined)
 
 # --- 实例检查 ---
-model = MahjongDecisionNet(channels=128, cycles=50)
-print(f"模型参数总量: {sum(p.numel() for p in model.parameters()):,}")
+
+for channels, layers in [(32, 10), (64, 10), (128, 10), (256, 10), (512, 10), (32, 50), (64, 50), (128, 50), (256, 50), (512, 50)]:
+    model = MahjongDecisionNet(channels=channels, cycles=layers)
+    print(f"专家层数: {channels}, 残差层数: {layers}, 模型参数总量: {sum(p.numel() for p in model.parameters()):,}")
+
 #   专家层数    10x模型参数     50x模型参数
-#   32          975,077         1,228,517
-#   64          1,589,413       2,587,813
-#   128         3,954,725       7,917,605
-#   256         13,231,909      29,021,989
-#   512         49,972,517      113,009,957
+#   32          975,333         1,228,773
+#   64          1,589,669       2,588,069
+#   128         3,954,981       7,917,861
+#   256         13,232,165      29,022,245
+#   512         49,972,773      113,010,213
 
